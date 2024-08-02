@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>현재 위치 출력</title>
+    <!-- #23 TMAP API 스크립트 추가 -->
+    <script src="https://apis.openapi.sk.com/tmap/vectorjs?version=1&appKey=5RB8KXlDuB6uLZGhugCqS9OJMViZ73P93dRPbphu"></script>
+  <script src="https://apis.openapi.sk.com/tmap/vectorjs?version=1&appKey=YOUR_TMAP_API_KEY"></script>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; }
+    #map_div { width: 100%; height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="map_div"></div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+    var userLocation;   
+    
+    function getPos(){
+        navigator.geolocation.getCurrentPosition(function (position) {
+            userLocation = new Tmapv3.LatLng(
+              position.coords.latitude,
+              position.coords.longitude
+            );
+            console.log("현재 위치: ", userLocation)
+
+          });
+    }
+      getPos();
+
+    });
+  </script>
+</body>
+</html>

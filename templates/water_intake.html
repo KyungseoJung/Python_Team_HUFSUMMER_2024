@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>오늘의 수분</title>
+    <style>
+        /* //#4 찰랑이는 물결 효과 */
+        @keyframes wave {
+            0% {
+                background-position-x: 0;
+            }
+            100% {
+                background-position-x: 1000px;
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: #ddd;
+            border-radius: 20px;
+            overflow: hidden;
+            margin: 20px 0;
+            position: relative; /* //#4 찰랑이는 물결 효과 */
+        }
+        .progress-bar-inner {
+            /* height: 50px;
+            width: 30;
+            background-color: #74acda;
+            text-align: center;
+            line-height: 50px;
+            color: white; */
+            /* //#4 찰랑이는 물결 효과 */
+            height: 50px;
+            width: 0;
+            background: url('/static/image/wave.png') repeat-x;
+            background-size: cover;
+            animation: wave 5s linear infinite;
+            text-align: center;
+            line-height: 50px;
+            color: white;
+
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 15px;
+            text-align: center;
+        }
+        .highlight {
+            background-color: #4b9847;
+        }
+        .past {
+            background-color: #ffffff;
+        }
+        .checkbox {
+            transform: scale(2.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- <h1>오늘의 수분</h1> -->
+        <h1>오늘의 수분 <span id="goal-intake" style="font-size: 14px; color: #777;"></span></h1>
+        <!-- # 의진 체감 온도 추가용 -->
+        <button class="btn" onclick="TempFeel()">오늘의 체감온도</button>
+        <div class="progress-bar">
+            <div class="progress-bar-inner" id="progress-bar-inner"></div>
+        </div>
+        <h2>수분 Plan List</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>섭취 체크</th>
+                    <th>시간</th>
+                    <th>양</th>
+                </tr>
+            </thead>
+            <tbody id="intake-table">
+                <!-- Rows will be populated here using JavaScript -->
+            </tbody>
+        </table>
+    </div>
+    <script>
+        let goalIntake = 0;  // 기본 목표 섭취량 설정
+        let currentIntake = 0;
+        var intakeTable;        // #2 다양한 함수에서 접근하기 위한 intakeTable 선언
+
+        // 목표 섭취량을 CSV 파일에서 불러오기
+        fetch('/static/intakeGoal_data.csv')
+            .then(response => response.text())
+            .then(data => {
+                const rows = data.split('\n');
+                goalIntake = parseInt(rows[1]);  // 목표 섭취량은 두 번째 줄에 있다고 가정
+                // #2 목표 섭취량 작은 글자로 표시
+                document.getElementById('goal-intake').textContent = `목표 섭취량: ${goalIntake}잔`;
+
+                updateProgressBar();
+            });
+
+        // 수분 섭취 데이터를 CSV 파일에서 불러오기
+        // fetch('/api/intake-data')
+        //     .then(response => response.json())
+        //     .then(intakeData => {
+        //         const currentTime = new Date().getHours();
+        //         intakeTable = document.getElementById('intake-table');
+
+        //         intakeData.forEach((data, index) => {
+        //             const row = document.createElement('tr');
+        //             const checkCell = document.createElement('td');
+        //             const timeCell = document.createElement('td');
+        //             const amountCell = document.createElement('td');
+
+        //             const checkbox = document.createElement('input');
+        //             checkbox.type = 'checkbox';
+        //             checkbox.classList.add('checkbox');
+        //             checkbox.addEventListener('change', () => updateIntake(index, data.amount));
+        //             checkCell.appendChild(checkbox);
+
+        //             timeCell.textContent = data.time;
+        //             amountCell.textContent = `${data.amount}ml`;
+
+        //             const intakeHour = parseInt(data.time.split(':')[0]);
+        //             if (intakeHour <= currentTime) {
+        //                 row.classList.add('past');
+        //             } else if (intakeHour > currentTime && intakeHour - currentTime <= 3) {
+        //                 row.classList.add('highlight');
+        //             }
+
+        //             row.appendChild(checkCell);
+        //             row.appendChild(timeCell);
+        //             row.appendChild(amountCell);
+        //             intakeTable.appendChild(row);
+        //         });
+        //     });
+        // 수분 섭취 데이터를 CSV 파일에서 불러오기
+        fetch('/api/intake-data')
+            .then(response => response.json())
+            .then(intakeData => {
+                const currentTime = new Date().getHours();
+                let closestFutureTimeIndex = -1;
+                let minTimeDiff = 24;  // 최대 시간 차이는 24시간
+
+                intakeTable = document.getElementById('intake-table');
+
+                intakeData.forEach((data, index) => {
+                    const intakeHour = parseInt(data.time.split(':')[0]);
+                    const timeDiff = intakeHour - currentTime;
+
+                    if (timeDiff >= 0 && timeDiff < minTimeDiff) {  // 현재 시간 이후만 고려
+                        minTimeDiff = timeDiff;
+                        closestFutureTimeIndex = index;
+                    }
+                });
+
+                intakeData.forEach((data, index) => {
+                    const row = document.createElement('tr');
+                    const checkCell = document.createElement('td');
+                    const timeCell = document.createElement('td');
+                    const amountCell = document.createElement('td');
+
+                    if (index === closestFutureTimeIndex) {
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.classList.add('checkbox');
+                        checkbox.addEventListener('change', () => updateIntake(index, data.amount));
+                        checkCell.appendChild(checkbox);
+                        row.classList.add('highlight');
+                        const nextTimeLabel = document.createElement('div');
+                        nextTimeLabel.style.fontSize = '12px';
+                        nextTimeLabel.style.color = '#ffff';
+                        nextTimeLabel.textContent = '다음 시간';
+                        timeCell.appendChild(nextTimeLabel);
+                    } else {
+                        const intakeHour = parseInt(data.time.split(':')[0]);
+                        if (intakeHour > currentTime) {
+                            // checkCell.innerHTML = `<img src="https://cdn-icons-png.flaticon.com/128/3717/3717054.png" alt="water cup" width="24" height="24">`;
+                            checkCell.innerHTML = `<img src="/static/image/waterCup.png" alt="water drop" width="24" height="24">`;
+
+                        } else {
+                            const checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.classList.add('checkbox');
+                            checkbox.addEventListener('change', () => updateIntake(index, data.amount));
+                            checkCell.appendChild(checkbox);
+                            row.classList.add('past');
+                        }
+                    }
+
+                    timeCell.textContent = data.time;
+                    amountCell.textContent = `${data.amount}잔`;
+
+                    row.appendChild(checkCell);
+                    row.appendChild(timeCell);
+                    row.appendChild(amountCell);
+                    intakeTable.appendChild(row);
+                });
+            });
+        
+        function updateIntake(index, amount) {
+            const checkbox = intakeTable.rows[index].cells[0].querySelector('input');
+            if (checkbox.checked) {
+                currentIntake += amount;
+            } else {
+                currentIntake -= amount;
+            }
+            updateProgressBar();
+        }
+
+        function updateProgressBar() {
+            const progressBar = document.getElementById('progress-bar-inner');
+            progressBar.style.width = `${(currentIntake / goalIntake) * 100}%`;
+            // progressBar.textContent = `${currentIntake}ml / ${goalIntake}ml`;
+            progressBar.textContent = `${currentIntake}잔`;
+        }
+        // # 의진 체감 온도 추가용
+        function TempFeel() {
+            fetch('/api/heat-index')
+                .then(response => response.json())
+                .then(data => {
+                    alert(`체감 온도는 ${data.heat_index.toFixed(2)}°C . 위험도: ${data.duration}`);
+                })
+                .catch(error => {
+                    console.error('Error fetching heat index:', error);
+                });
+        }
+    </script>
+</body>
+</html>

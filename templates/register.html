@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원가입</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 400px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            color: #555;
+        }
+        input[type="text"], input[type="number"], select, input[type="time"] {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            display: block;
+        }
+        .toggle-group {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        .toggle-group input[type="radio"] {
+            display: none;
+        }
+        .toggle-group label {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .toggle-group input[type="radio"]:checked + label {
+            background-color: #333;
+            color: #fff;
+            border-color: #333;
+        }
+        /* 나이, 체중에 해당하는 드래그의 디자인 조정 */
+        input[type="range"] {
+            width: 100%;
+            margin: 5px 0 10px 0;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 10px; /* 굵기 설정 */
+            background: #ddd;
+            border-radius: 5px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #007BFF;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #007BFF;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .range-value {
+            text-align: center;
+            font-size: 14px;
+            margin-top: -10px;
+            color: #555;
+        }
+        input[type="submit"], .btn, .btn-close {
+            width: 100%;
+            padding: 10px;
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        input[type="submit"]:hover, .btn:hover, .btn-close:hover {
+            background-color: #0056b3;
+        }
+        .number-input {
+            display: flex;
+            align-items: center;
+        }
+        .number-input input {
+            flex: 1;
+        }
+        .number-input span {
+            margin-left: 5px;
+            font-size: 14px;
+        }
+        /* 추가된 스타일: 팝업 및 시간 선택기 디자인 */
+        .popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .popup-content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .time-scroll-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .time-scroll {
+            height: 100px;
+            overflow-y: scroll;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            width: 100px;
+        }
+        .time-item {
+            padding: 10px;
+            cursor: pointer;
+        }
+        .time-item:hover {
+            background-color: #f1f1f1;
+        }
+        .selected-time-part {
+            background-color: #007BFF;
+            color: #fff;
+        }
+    </style>
+    <script>
+        function updateRangeValue(range, output) {
+            document.getElementById(output).textContent = range.value;
+        }
+
+        // 추가된 함수: 시간 선택기 팝업 열기
+        function openTimePopup(target) {
+            document.getElementById("time-popup").style.display = "flex";
+            document.getElementById("time-popup").dataset.target = target;
+            document.getElementById("hour-scroll").innerHTML = "";
+            document.getElementById("minute-scroll").innerHTML = "";
+            for (let h = 0; h < 24; h++) {
+                const hourItem = document.createElement("div");
+                hourItem.className = "time-item";
+                hourItem.textContent = String(h).padStart(2, "0");
+                hourItem.onclick = () => selectTimePart("hour", String(h).padStart(2, "0"), hourItem);
+                document.getElementById("hour-scroll").appendChild(hourItem);
+            }
+            for (let m = 0; m < 60; m += 5) {
+                const minuteItem = document.createElement("div");
+                minuteItem.className = "time-item";
+                minuteItem.textContent = String(m).padStart(2, "0");
+                minuteItem.onclick = () => selectTimePart("minute", String(m).padStart(2, "0"), minuteItem);
+                document.getElementById("minute-scroll").appendChild(minuteItem);
+            }
+        }
+
+        // 추가된 함수: 시간 선택기 팝업 닫기
+        function closeTimePopup() {
+            document.getElementById("time-popup").style.display = "none";
+        }
+
+        // 추가된 함수: 시간 선택
+        let selectedHour = null;
+        let selectedMinute = null;
+        function selectTimePart(part, value, element) {
+            if (part === "hour") {
+                selectedHour = value;
+                document.querySelectorAll("#hour-scroll .time-item").forEach((item) => {
+                    item.classList.remove("selected-time-part");
+                });
+                element.classList.add("selected-time-part");
+            } else if (part === "minute") {
+                selectedMinute = value;
+                document.querySelectorAll("#minute-scroll .time-item").forEach((item) => {
+                    item.classList.remove("selected-time-part");
+                });
+                element.classList.add("selected-time-part");
+            }
+            updateTimeSelection();
+        }
+
+        // 추가된 함수: 선택된 시간 표시
+        function updateTimeSelection() {
+            if (selectedHour !== null && selectedMinute !== null) {
+                const target = document.getElementById("time-popup").dataset.target;
+                document.getElementById(target).value = `${selectedHour}:${selectedMinute}`;
+            }
+        }
+
+        // 추가된 함수: 시간 선택 확인
+        function confirmTime() {
+            if (selectedHour !== null && selectedMinute !== null) {
+                const target = document.getElementById("time-popup").dataset.target;
+                document.getElementById(target).value = `${selectedHour}:${selectedMinute}`;
+            }
+            closeTimePopup();
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>사용자 정보 입력</h1>
+        <form action="/register" method="post">
+            <div class="form-group">
+                <label for="gender">성별 선택</label>
+                <div class="toggle-group">
+                    <input type="radio" id="female" name="gender" value="female">
+                    <label for="female">여성</label>
+                    <input type="radio" id="male" name="gender" value="male">
+                    <label for="male">남성</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="age">나이 (만 <span id="ageValue">0</span>세):</label>
+                <input type="range" id="age" name="age" min="0" max="100" value="0" oninput="updateRangeValue(this, 'ageValue')" required>
+                <!-- <div class="range-value"><span id="ageValue">0</span>세</div> -->
+            </div>
+
+            <div class="form-group">
+                <label for="weight">체중 (<span id="weightValue">0</span>kg):</label>
+                <input type="range" id="weight" name="weight" min="0" max="200" value="0" oninput="updateRangeValue(this, 'weightValue')" required>
+                <!-- <div class="range-value"><span id="weightValue">0</span>kg</div> -->
+            </div>
+
+            <!-- 기상 시간 입력 필드 추가 -->
+            <div class="form-group">
+                <label for="wake_time">기상 시간:</label>
+                <input type="text" id="wake_time" name="wake_time" readonly onclick="openTimePopup('wake_time')" required> <!-- 시간 선택 팝업 열기 -->
+            </div>
+
+            <!-- 예상 취침 시간 입력 필드 추가 -->
+            <div class="form-group">
+                <label for="bed_time">예상 취침 시간:</label>
+                <input type="text" id="bed_time" name="bed_time" readonly onclick="openTimePopup('bed_time')" required> <!-- 시간 선택 팝업 열기 -->
+            </div>
+
+            <div class="form-group">
+                <label for="exercise_type">운동 종류:</label>
+                <select id="exercise_type" name="exercise_type" required>
+                    <option value="걷기">걷기</option>
+                    <option value="빨리걷기">빨리걷기</option>
+                    <option value="달리기">달리기</option>
+                    <option value="계단오르기">계단오르기</option>
+                    <option value="자전거">자전거</option>
+                    <option value="줄넘기">줄넘기</option>
+                    <option value="등산">등산</option>
+                    <option value="수영">수영</option>
+                    <option value="에어로빅">에어로빅</option>
+                    <option value="체조">체조</option>
+                    <option value="스케이트">스케이트</option>
+                    <option value="스키">스키</option>
+                    <option value="권투">권투</option>
+                    <option value="농구">농구</option>
+                    <option value="축구">축구</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="exercise_env">운동 환경</label>
+                <div class="toggle-group">
+                    <input type="radio" id="indoor" name="exercise_env" value="indoor">
+                    <label for="indoor">내부</label>
+                    <input type="radio" id="outdoor" name="exercise_env" value="outdoor">
+                    <label for="outdoor">외부</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="exercise_time">운동 시간대:</label>
+                <input type="text" id="exercise_time" name="exercise_time" readonly onclick="openTimePopup('exercise_time')" required> <!-- 시간 선택 팝업 열기 -->
+            </div>
+
+            <div class="form-group">
+                <label for="exercise_duration">운동 시간 (시간):</label>
+                <div class="number-input">
+                    <input type="number" id="exercise_duration" name="exercise_duration" min="1" step="1" required> <!-- 1 이상의 정수만 입력되도록 수정 -->
+                    <span>시간</span> <!-- 시간 단위 추가 -->
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="coffee_intake">하루 커피 섭취 수:</label>
+                <div class="number-input">
+                    <input type="number" id="coffee_intake" name="coffee_intake" min="0" step="1" required> <!-- 0 이상의 정수만 입력되도록 수정 -->
+                    <span>잔</span> <!-- 잔 단위 추가 -->
+                </div>
+            </div>
+
+            <input type="submit" value="나의 수분 Plan 확인하기">
+        </form>
+    </div>
+
+    <!-- 시간 선택 팝업 추가 -->
+    <div class="popup" id="time-popup">
+        <div class="popup-content">
+            <h3>시간 선택</h3> <!-- 제목 수정 -->
+            <div class="time-scroll-container">
+                <div class="time-scroll" id="hour-scroll"></div>
+                <div class="time-scroll" id="minute-scroll"></div>
+            </div>
+            <button class="btn" onclick="confirmTime()">확인</button>
+            <button class="btn btn-close" onclick="closeTimePopup()">닫기</button>
+        </div>
+    </div>
+</body>
+</html>
