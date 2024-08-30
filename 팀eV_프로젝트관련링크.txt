@@ -1,0 +1,3 @@
+팀 eV 프로젝트 관련 링크
+1. 웹 배포: https://kyungseojung.pythonanywhere.com/
+2. 협업 노션: https://kyungseojung.notion.site/HUFSummer-8a1e248a215041a0a24e456743b5bf2a?pvs=4
